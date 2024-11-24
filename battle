@@ -1,0 +1,324 @@
+from cs110 import autograder
+import random
+#--------------------------------------------------------------------------------
+# Name: <C4C Nolan Byers>
+# Section: <T4A>
+# CS110 Final Project - Battle Boats - Spiral 2
+#--------------------------------------------------------------------------------
+# Import the necessary libraries
+import pythonGraph as pg
+
+# Define Game & Game Window CONSTANTS
+SCREEN_SIZE = 600
+SQUARE_SIZE = SCREEN_SIZE/16
+HALF_SQAURE = SQUARE_SIZE/2
+
+hits = 0
+win = False
+current_shot = ""
+past_shot = ' '
+enemy_current_shot = ' '
+did_shoot = False
+
+PLAYER_TURN = 1
+ENEMY_TURN = 2
+game_state = 1
+
+
+
+left_x = SQUARE_SIZE+1
+top_y = SQUARE_SIZE+1
+
+
+enemy_shot_possible = ["A1" , "A2" , "A3" , "A4" , "A5" , "A6" , "A7" , "A8" , "A9" , "A10",
+                    "B1" , "B2" , "B3" , "B4" , "B5" , "B6" , "B7" , "B8" , "B9" , "B10",
+                    "C1" , "C2" , "C3" , "C4" , "C5" , "C6" , "C7" , "C8" , "C9" , "C10",
+                    "D1" , "D2" , "D3" , "D4" , "D5" , "D6" , "D7" , "D8" , "D9" , "D10",
+                    "E1" , "E2" , "E3" , "E4" , "E5" , "E6" , "E7" , "E8" , "E9" , "E10",
+                    "F1" , "F2" , "F3" , "F4" , "F5" , "F6" , "F7" , "F8" , "F9" , "F10",
+                    "G1" , "G2" , "G3" , "G4" , "G5" , "G6" , "G7" , "G8" , "G9" , "G10",
+                    "H1" , "H2" , "H3" , "H4" , "H5" , "H6" , "H7" , "H8" , "H9" , "H10",
+                    "I1" , "I2" , "I3", "I4" , "I5" , "I6" , "I7" , "I8" , "I9" , "I10",
+                    "J1" , "J2" , "J3", "J4" , "J5" , "J6" , "J7" , "J8" , "J9" , "J10"]
+
+
+
+player_ship_list_2D = ['A1']
+
+enemy_ship_list_2D= ['A1','B1','D1','C1', 'E1','J7', 'J8', 'J9', 'J10','E5', 'E6', 'E7', 'E8', 'E9']
+
+player_shot_list_1D = []
+
+enemy_shot_list_1D = []
+
+# Copy and paste your function definitions from Gate Check 1 here
+
+def get_screen_coordinates (left_x, top_y, square_size, row_index, column_index):
+    x = (column_index * square_size) + left_x + (0.5 * square_size)
+    y = (row_index * square_size) + top_y + (0.5 * square_size)
+    return x, y
+
+def index_to_m(x,y):
+    first_letter = chr(x+65)
+    second_letter = str(y + 1)
+    mnemonic = str(first_letter + second_letter)
+    return mnemonic
+
+def m_to_index(m_string):
+    first_letter = m_string[0] 
+    x = ord(first_letter) - 65 
+
+    m_column_number = m_string[1:]
+
+    y = int(m_column_number)-1
+    return x, y
+
+# Gate Check #2
+
+
+def check_valid_first_character(mnemonic):
+    if len(mnemonic) < 1:
+        return False
+    return ord('A') <= ord(mnemonic[0]) <= ord('J')
+
+def check_valid_second_character(mnemonic):
+    if len(mnemonic) < 2:
+        return False
+    return ord("1") <= ord(mnemonic[1]) <= ord("9")
+
+def check_valid_third_character(mnemonic):
+    if len(mnemonic) == 2:
+        return True
+    elif len(mnemonic) == 3 and mnemonic[1: ] == "10":
+        return True
+    else:
+        return False
+        
+
+def check_complete_valid_mnemonic(mnemonic):
+    
+    is_valid =  check_valid_first_character(mnemonic) and\
+           check_valid_second_character(mnemonic) and\
+           check_valid_third_character(mnemonic)
+    return is_valid
+
+def handle_mnemonic(mnemonic, new_entry):
+    new_entry = new_entry.upper()
+
+    if new_entry == 'RETURN' and check_complete_valid_mnemonic(mnemonic):
+        proposed_mnemonic = mnemonic
+        submit= True
+    else:
+        submit = False
+    
+        if new_entry == "BACKSPACE":
+            proposed_mnemonic = mnemonic[:-1]
+        elif mnemonic == ' '  and check_valid_first_character(new_entry):
+            proposed_mnemonic = new_entry 
+        elif len(mnemonic) == 1 and check_valid_second_character(mnemonic+new_entry):
+            proposed_mnemonic = mnemonic + new_entry
+        elif len(mnemonic) == 2 and check_valid_third_character(mnemonic +new_entry):
+            proposed_mnemonic = mnemonic + new_entry
+        else:
+            proposed_mnemonic = mnemonic
+       
+    return proposed_mnemonic, submit
+
+
+# Complete draw_board() and draw_shots()
+
+def draw_board():
+    for i in range(10):
+        x,y = get_screen_coordinates(0,0, SQUARE_SIZE, 0,i+1)
+        pg.draw_text(str(i+1),x,y,color = 'black', centered = True)
+    
+    for i in range(10):
+        x,y = get_screen_coordinates(0,0, SQUARE_SIZE, i+1,0)
+        pg.draw_text(chr((i+65)),x,y,color = 'black', centered = True)
+
+    for i in range(11):
+        x,y = get_screen_coordinates(0,0, SQUARE_SIZE, 1,i+1)
+        pg.draw_line(x-HALF_SQAURE,y-HALF_SQAURE, x-HALF_SQAURE,y+((SQUARE_SIZE*9)+HALF_SQAURE), color = "black")
+
+    for i in range(11):
+        x,y = get_screen_coordinates(0,0, SQUARE_SIZE, i+1,1)
+        pg.draw_line(x-HALF_SQAURE,y-HALF_SQAURE ,x+((SQUARE_SIZE*9)+HALF_SQAURE),y-HALF_SQAURE, color = "black")
+
+    
+# def draw_shots(shots,ships,mnemonic):
+#         global hits
+#         x,y = m_to_index(current_shot)
+#         x1,y1 = get_screen_coordinates(left_x,top_y, SQUARE_SIZE,x,y)
+#         if current_shot in enemy_ship_list_2D:
+#             color =  'red'
+#             hits += 1
+#         else:
+#             color =  "white"
+#         
+#         pg.draw_circle(x1,y1,18,color,True,True)
+
+def draw_shots(shots,ships,mnemonic):
+    global hits
+    for i in player_shot_list_1D:
+        x,y = m_to_index(i)
+        x1,y1 = get_screen_coordinates(left_x,top_y, SQUARE_SIZE,x,y)
+        if i in enemy_ship_list_2D:
+            color =  'red'
+            hits += 1
+        else:
+            color =  "white"
+        
+        pg.draw_circle(x1,y1,18,color,True,True)
+        
+        
+    
+
+def get_mnenomic():
+    global current_shot,past_shot, did_shoot
+    mnemonic = ' '
+    submit = False
+    
+    while not submit:
+        recent_key_pressed = pg.get_pressed_key()
+        if recent_key_pressed is not None:
+            mnemonic,submit = handle_mnemonic(mnemonic,recent_key_pressed)
+        pg.draw_rectangle(SQUARE_SIZE*8, SQUARE_SIZE*12, SQUARE_SIZE*11, SQUARE_SIZE*13, "light blue", True)
+        pg.draw_text(mnemonic, SQUARE_SIZE*8, SQUARE_SIZE*12, "Black")
+
+        
+        pg.update_window()
+        
+    did_shoot = submit
+    current_shot = mnemonic
+    past_shot = current_shot
+    player_shot_list_1D.append(mnemonic)
+    
+def get_enemy_shot():
+    global enemy_shot_possible, enemy_shot_list_1D, enemy_current_shot
+    my_shot = random.choice(enemy_shot_possible)
+    enemy_shot_possible.remove(my_shot)
+    enemy_shot_list_1D.append(my_shot)
+    
+    enemy_current_shot = enemy_shot_list_1D[len(enemy_shot_list_1D) - 1]
+
+
+    
+def determine_hit():
+    global past_shot
+    
+    if past_shot in enemy_ship_list_2D:
+            color =  'red'
+        
+    else:
+            color =  "white"
+    return color
+
+def draw_current_shots():
+    
+    pg.draw_rectangle(SQUARE_SIZE*5, SQUARE_SIZE*12, SQUARE_SIZE*9, SQUARE_SIZE*13, "light blue", True)
+
+    
+    pg.draw_text(current_shot, SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+    color = determine_hit()
+
+    if color == "red":
+        pg.draw_text(past_shot + "  HIT ", SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+    elif color == "white":
+        pg.draw_text(past_shot + "  MISS", SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+        
+def draw_current_enemy_shots():
+    global enemy_current_shot
+    pg.draw_rectangle(SQUARE_SIZE*5, SQUARE_SIZE*12, SQUARE_SIZE*9, SQUARE_SIZE*13, "light blue", True)
+
+    
+    pg.draw_text(enemy_current_shot, SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+  
+    if enemy_current_shot in player_ship_list_2D:
+            color =  'red'
+        
+    else:
+            color =  "white"
+
+    if color == "red":
+        pg.draw_text(enemy_current_shot + "  HIT ", SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+    elif color == "white":
+        pg.draw_text(enemy_current_shot + "  MISS", SQUARE_SIZE*5, SQUARE_SIZE*12, "Black")
+        
+def draw_enemy_shots():
+    enemy_color = ' '
+    for i in enemy_shot_list_1D:
+        x,y = m_to_index(i)
+        x1,y1 = get_screen_coordinates(left_x,top_y, SQUARE_SIZE,x,y)
+        if i in player_ship_list_2D:
+            enemy_color =  'red'
+        else:
+            enemy_color =  "white"
+        pg.draw_circle(x1,y1,18,enemy_color,True,True)
+    
+        
+def draw_player_ships():
+    for i in player_ship_list_2D:
+        x,y = m_to_index(i)
+        x1,y1 = get_screen_coordinates(left_x,top_y, SQUARE_SIZE,x,y)
+        pg.draw_rectangle(x1+ SQUARE_SIZE/2,y1+SQUARE_SIZE/2, x1-SQUARE_SIZE/2, y1 -SQUARE_SIZE/2, "gray", True)
+
+
+def game_end():
+    global hits
+    if hits == 14:
+        pg.draw_text('You Win', SCREEN_SIZE/3, SCREEN_SIZE/2, 'white')
+        pg.wait_for_close()
+        
+
+
+#------------------------------- Animation Loop -------------------------------
+# Open the game window & set widow title
+pg.open_window(SCREEN_SIZE, SCREEN_SIZE)
+pg.clear_window("light blue")
+pg.set_window_title('CS110 (F24) Battle Boats - Spiral #2 - C4C Nolan Byers')
+
+
+while pg.window_not_closed():
+    
+    
+    if game_state == PLAYER_TURN:
+        draw_board()
+        get_mnenomic()
+        draw_shots(player_shot_list_1D,enemy_ship_list_2D,current_shot)
+        draw_current_shots()
+        draw_shots(player_shot_list_1D,enemy_ship_list_2D,current_shot)
+        pg.draw_text("PRESS TAB FOR ENEMY TURN", SQUARE_SIZE*3, SQUARE_SIZE*15, "Black")
+        
+        if pg.get_pressed_key() == 'tab':
+                
+            pg.draw_rectangle(SQUARE_SIZE*3, SQUARE_SIZE*15, SQUARE_SIZE*6, SQUARE_SIZE*16, "light blue", True)
+                    
+            game_state = ENEMY_TURN
+            pg.clear_window("light blue") 
+                
+
+    if game_state == ENEMY_TURN:
+        
+        draw_board()
+        get_enemy_shot()
+        draw_player_ships()
+        draw_enemy_shots()
+        draw_current_enemy_shots()
+        pg.draw_text("PRESS TAB FOR PLAYER TURN", SQUARE_SIZE*3, SQUARE_SIZE*15, "Black")
+
+        if pg.get_pressed_key() == 'tab':
+            pg.clear_window("light blue") 
+            pg.draw_rectangle(SQUARE_SIZE*3, SQUARE_SIZE*15, SQUARE_SIZE*6, SQUARE_SIZE*16, "light blue", True)
+            game_state = PLAYER_TURN
+            
+
+        
+    game_end()
+    
+    pg.update_window()
+
+
+# Waits for the user to close the window
+pg.wait_for_close()
+
+#  For Spiral #3 used only the authorized reosurces and recived no further assistance.
